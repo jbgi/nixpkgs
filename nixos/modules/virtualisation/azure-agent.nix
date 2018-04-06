@@ -9,10 +9,10 @@ let
   waagent = with pkgs; stdenv.mkDerivation rec {
     name = "waagent-2.0";
     src = pkgs.fetchFromGitHub {
-      owner = "Azure";
+      owner = "jbgi";
       repo = "WALinuxAgent";
-      rev = "1b3a8407a95344d9d12a2a377f64140975f1e8e4";
-      sha256 = "10byzvmpgrmr4d5mdn2kq04aapqb3sgr1admk13wjmy5cd6bwd2x";
+      rev = "446633d0343c08fdf4f440425d21448c937905ae";
+      sha256 = "1l8lgmcsqks01hnvibfg20wbk4b829c3dyk6pb86zry28r7xw3fz";
     };
 
     patches = [ ./azure-agent-entropy.patch ];
@@ -33,11 +33,13 @@ let
     installPhase = ''
       substituteInPlace config/99-azure-product-uuid.rules \
           --replace /bin/chmod "${coreutils}/bin/chmod"
+      substituteInPlace config/66-azure-storage.rules \
+          --replace /bin/sh "${bash}/bin/sh"
       mkdir -p $out/lib/udev/rules.d
       cp config/*.rules $out/lib/udev/rules.d
 
       mkdir -p $out/bin
-      cp waagent $out/bin/
+      cp bin/waagent2.0 $out/bin/waagent
       chmod +x $out/bin/waagent
 
       wrapProgram "$out/bin/waagent" \

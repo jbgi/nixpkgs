@@ -1,0 +1,287 @@
+diff --git a/azure-storage-cpp-lite/include/blob/blob_client.h b/azure-storage-cpp-lite/include/blob/blob_client.h
+index 4afaaf0..20926d6 100644
+--- a/azure-storage-cpp-lite/include/blob/blob_client.h
++++ b/azure-storage-cpp-lite/include/blob/blob_client.h
+@@ -3,6 +3,7 @@
+ #include <iostream>
+ #include <memory>
+ #include <string>
++#include <syslog.h>
+ 
+ #include "storage_EXPORTS.h"
+ 
+diff --git a/azure-storage-cpp-lite/src/blob/blob_client_wrapper.cpp b/azure-storage-cpp-lite/src/blob/blob_client_wrapper.cpp
+index abbdf39..68c24fb 100644
+--- a/azure-storage-cpp-lite/src/blob/blob_client_wrapper.cpp
++++ b/azure-storage-cpp-lite/src/blob/blob_client_wrapper.cpp
+@@ -149,7 +149,7 @@ namespace microsoft_azure {
+             }
+             catch(const std::exception &ex)
+             {
+-                std::cerr << ex.what() << std::endl;
++                syslog(LOG_ERR, "Unknown failure in blob_client_wrapper_init.  ex.what() = %s.", ex.what());
+                 errno = unknown_error;
+                 return blob_client_wrapper(false);
+             }
+@@ -189,6 +189,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in create_container.  ex.what() = %s, container = %s.", ex.what(), container.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -224,6 +225,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in delete_container.  ex.what() = %s, container = %s.", ex.what(), container.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -253,12 +255,14 @@ namespace microsoft_azure {
+                 }
+                 else
+                 {
++                    syslog(LOG_ERR, "Unknown failure in container_exists.  No exception, but the container property object is invalid.  errno = %d.", errno);
+                     errno = unknown_error;
+                     return false;
+                 }
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in container_exists.  ex.what() = %s, container = %s.", ex.what(), container.c_str());
+                 errno = unknown_error;
+                 return false;
+             }
+@@ -292,6 +296,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in list_containers.  ex.what() = %s, prefix = %s.", ex.what(), prefix.c_str());
+                 errno = unknown_error;
+                 return std::vector<list_containers_item>();
+             }
+@@ -331,6 +336,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in list_blobs_hierarchial.  ex.what() = %s, container = %s, prefix = %s.", ex.what(), container.c_str(), prefix.c_str());
+                 errno = unknown_error;
+                 return list_blobs_hierarchical_response();
+             }
+@@ -357,6 +363,7 @@ namespace microsoft_azure {
+             catch(std::exception ex)
+             {
+                 // TODO open failed
++                syslog(LOG_ERR, "Failure to open the input stream in put_blob.  ex.what() = %s, sourcePath = %s.", ex.what(), sourcePath.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -377,6 +384,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Failure to upload the blob in put_blob.  ex.what() = %s, container = %s, blob = %s, sourcePath = %s.", ex.what(), container.c_str(), blob.c_str(), sourcePath.c_str());
+                 errno = unknown_error;
+             }
+ 
+@@ -387,6 +395,7 @@ namespace microsoft_azure {
+             catch(std::exception ex)
+             {
+                 // TODO close failed
++                syslog(LOG_ERR, "Failure to close the input stream in put_blob.  ex.what() = %s, container = %s, blob = %s, sourcePath = %s.", ex.what(), container.c_str(), blob.c_str(), sourcePath.c_str());
+                 errno = unknown_error;
+             }
+         }
+@@ -423,6 +432,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in upload_block_blob_from_stream.  ex.what() = %s, container = %s, blob = %s.", ex.what(), container.c_str(), blob.c_str());
+                 errno = unknown_error;
+             }
+         }
+@@ -478,7 +488,7 @@ namespace microsoft_azure {
+             std::ifstream ifs(sourcePath);
+             if(!ifs)
+             {
+-                //std::cout << "Failed to open " << sourcePath << std::endl;
++                syslog(LOG_ERR, "Failed to open the input stream in upload_file_to_blob.  errno = %d, sourcePath = %s.", errno, sourcePath.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -519,6 +529,7 @@ namespace microsoft_azure {
+                 if(!ifs.read(buffer, length))
+                 {
+                     //std::cout << blob << " failed to read " << length << std::endl;
++                    syslog(LOG_ERR, "Failed to read from input stream in upload_file_to_blob.  sourcePath = %s, container = %s, blob = %s, offset = %lld, length = %d.", sourcePath.c_str(), container.c_str(), blob.c_str(), offset, length);
+                     result = unknown_error;
+                     break;
+                 }
+@@ -589,7 +600,7 @@ namespace microsoft_azure {
+                 if(!r.success())
+                 {
+                     result = std::stoi(r.error().code);
+-                    //std::cout << blob << " put_block_list failed" << std::endl;
++                    syslog(LOG_ERR, "put_block_list failed in upload_file_to_blob.  error code = %d, sourcePath = %s, container = %s, blob = %s.", result, sourcePath.c_str(), container.c_str(), blob.c_str());
+                     if (0 == result) {
+                         result = unknown_error;
+                     }
+@@ -635,6 +646,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in download_blob_to_stream.  ex.what() = %s, container = %s, blob = %s.", ex.what(), container.c_str(), blob.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -658,6 +670,7 @@ namespace microsoft_azure {
+                 firstChunk = m_blobClient->get_chunk_to_stream_sync(container, blob, 0, DOWNLOAD_CHUNK_SIZE, os);
+                 os.close();
+                 if (!os) {
++                    syslog(LOG_ERR, "get_chunk_to_stream_async failed for firstchunk in download_blob_to_file.  container = %s, blob = %s, destPath = %s.", container.c_str(), blob.c_str(), destPath.c_str());
+                     errno = unknown_error;
+                     return;
+                 }
+@@ -718,6 +731,7 @@ namespace microsoft_azure {
+                             }
+                             // Check for any writing errors.
+                             if (!output) {
++                                syslog(LOG_ERR, "get_chunk_to_stream_async failure in download_blob_to_file.  container = %s, blob = %s, destPath = %s, offset = %llu, range = %llu.", container.c_str(), blob.c_str(), destPath.c_str(), offset, range);
+                                 return unknown_error;
+                             }
+                             return 0;
+@@ -739,6 +753,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in download_blob_to_file.  ex.what() = %s, container = %s, blob = %s, destPath = %s.", ex.what(), container.c_str(), blob.c_str(), destPath.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -771,6 +786,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in get_blob_property.  ex.what() = %s, container = %s, blob = %s.", ex.what(), container.c_str(), blob.c_str());
+                 errno = unknown_error;
+                 return blob_property(false);
+             }
+@@ -796,6 +812,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in blob_exists.  ex.what() = %s, container = %s, blob = %s.", ex.what(), container.c_str(), blob.c_str());
+                 errno = unknown_error;
+                 return false;
+             }
+@@ -831,6 +848,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in delete_blob.  ex.what() = %s, container = %s, blob = %s.", ex.what(), container.c_str(), blob.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+@@ -868,6 +886,7 @@ namespace microsoft_azure {
+             }
+             catch(std::exception ex)
+             {
++                syslog(LOG_ERR, "Unknown failure in start_copy.  ex.what() = %s, sourceContainer = %s, sourceBlob = %s, destContainer = %s, destBlob = %s.", ex.what(), sourceContainer.c_str(), sourceBlob.c_str(), destContainer.c_str(), destBlob.c_str());
+                 errno = unknown_error;
+                 return;
+             }
+diff --git a/blobfuse/fileapis.cpp b/blobfuse/fileapis.cpp
+index 88099fd..d80d826 100644
+--- a/blobfuse/fileapis.cpp
++++ b/blobfuse/fileapis.cpp
+@@ -97,6 +97,7 @@ int azs_open(const char *path, struct fuse_file_info *fi)
+                 }
+             }
+             flock(fd, LOCK_UN);
++            close(fd);
+             // We now know that there are no other open file handles to the file.  We're safe to continue with the cache update.
+         }
+ 
+@@ -359,20 +360,24 @@ int azs_release(const char *path, struct fuse_file_info * fi)
+ {
+     AZS_DEBUGLOGV("azs_release called with path = %s, fi->flags = %d\n", path, fi->flags);
+ 
+-    // TODO: Make this method resiliant to renames of the file (same way flush() is)
++    // Unlock the file
++    // Note that this will release the shared lock acquired in the corresponding open() call (the one that gave us this file descriptor, in the fuse_file_info).
++    // It will not release any locks acquired from other calls to open(), in this process or in others.
++    // If the file handle is invalid, this will fail with EBADF, which is not an issue here.
++    flock(((struct fhwrapper *)fi->fh)->fh, LOCK_UN);
++
++    // Close the file handle.
++    // This must be done, even if the file no longer exists, otherwise we're leaking file handles.
++    close(((struct fhwrapper *)fi->fh)->fh);
++
++// TODO: Make this method resiliant to renames of the file (same way flush() is)
+     std::string pathString(path);
+     const char * mntPath;
+     std::string mntPathString = prepend_mnt_path_string(pathString);
+     mntPath = mntPathString.c_str();
+     if (access(mntPath, F_OK) != -1 )
+     {
+-        AZS_DEBUGLOGV("Closing the file handle and adding file to the GC from azs_release.  File = %s\n.", mntPath);
+-
+-        // Unlock the file and close the file handle.
+-        // Note that this will release the shared lock acquired in the corresponding open() call (the one that gave us this file descriptor, in the fuse_file_info).
+-        // It will not release any locks acquired from other calls to open(), in this process or in others.
+-        flock(((struct fhwrapper *)fi->fh)->fh, LOCK_UN);
+-        close(((struct fhwrapper *)fi->fh)->fh);
++        AZS_DEBUGLOGV("Adding file to the GC from azs_release.  File = %s\n.", mntPath);
+ 
+         // store the file in the cleanup list
+         gc_cache.add_file(pathString);
+@@ -484,6 +489,7 @@ int azs_truncate(const char * path, off_t off)
+             if(flushret != 0)
+             {
+                 syslog(LOG_ERR, "Failing azs_truncate operation on file %s due to failure %d from azs_flush.  Note that truncate on cached file succeeded.\n.", path, flushret);
++                azs_release(path, &fi);
+                 return flushret;
+             }
+         }
+@@ -491,6 +497,7 @@ int azs_truncate(const char * path, off_t off)
+         {
+             int truncate_errno = errno;
+             syslog(LOG_ERR, "Failing azs_truncate operation on file %s due to failure to truncate local file in cache.  Errno = %d.\n.", path, truncate_errno);
++            azs_release(path, &fi);
+             return -truncate_errno;
+         }
+ 
+diff --git a/blobfuse/utilities.cpp b/blobfuse/utilities.cpp
+index aa54a16..1671c82 100644
+--- a/blobfuse/utilities.cpp
++++ b/blobfuse/utilities.cpp
+@@ -602,9 +602,9 @@ int azs_rename_directory(const char *src, const char *dst)
+ 
+             dir_ent = readdir(dir_stream);
+         }
+-    }
+ 
+-    closedir(dir_stream);
++        closedir(dir_stream);
++    }
+ 
+     // Rename all files & directories that don't exist in the local cache.
+     errno = 0;
+diff --git a/build.sh b/build.sh
+index f5d301c..2b6de9f 100755
+--- a/build.sh
++++ b/build.sh
+@@ -3,9 +3,9 @@ BLOBFS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ 
+ ## Use "export INCLUDE_TESTS=1" to enable building tests
+ 
+-cmake_args='-DCMAKE_BUILD_TYPE=Release ..'
++cmake_args='-DCMAKE_BUILD_TYPE=RelWithDebInfo ..'
+ if [ -n "${INCLUDE_TESTS}" ]; then
+-    cmake_args='-DCMAKE_BUILD_TYPE=Release -DINCLUDE_TESTS=1 ..'
++    cmake_args='-DCMAKE_BUILD_TYPE=RelWithDebInfo -DINCLUDE_TESTS=1 ..'
+ fi
+ 
+ ## install pkg-config, cmake, libcurl and libfuse first

@@ -10,13 +10,13 @@ buildGoModule rec {
   version = "0.15.1";
 
   src = fetchFromGitHub {
-    owner = "writefreely";
+    owner = "jbgi";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-Qr31XSbAckLElD81yxD+K7tngWECQ+wyuESC+biAbyw=";
+    rev = "aa6eb6c4a41783d05f7529971ea170fdfdd954e9";
+    sha256 = "sha256-EXLeCPS+79xKj+nU8HvpDS+mRmzr6jtS4qyQNC8Ryu0=";
   };
 
-  vendorHash = "sha256-HmEh8WmKbdAimvzsAiaXcqSXoU1DJx06+s1EH1JZmwo=";
+  vendorHash = "sha256-g5JdmWf+UKwuBoTrc+/ugAZzhFJwl/as/mmJduWWPRY=";
 
   ldflags = [
     "-s"

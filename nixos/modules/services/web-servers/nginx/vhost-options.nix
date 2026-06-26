@@ -151,6 +151,15 @@ with lib;
       '';
     };
 
+    acmeS3BucketHost = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = ''
+        Host of the S3 bucket which to proxy requests.
+        Mandatory if security.acme.certs.<name>.s3Bucket is not null for this virtual host.
+      '';
+    };
+
     addSSL = mkOption {
       type = types.bool;
       default = false;
